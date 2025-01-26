@@ -1,5 +1,5 @@
 import assemblyai as aai
-from googletrans import Translator
+import deepl
 
 # Replace with your API key
 aai.settings.api_key = "2c3485d068c74e278224ca36f93d4889"
@@ -21,11 +21,9 @@ if transcript.status == aai.TranscriptStatus.error:
 else:
     print(transcript.text)
 
-translator = Translator()
+deepl_auth_key = "498e4cbe-ed83-48d7-be50-40544b089627"  # Replace with your key
+deepl_client = deepl.DeepLClient(deepl_auth_key)
 
-detected_language = translator.detect(transcript.text)
-print(detected_language)
-
-translated_text = translator.translate(transcript.text, dest="hi")
-print(translated_text)
+result = deepl_client.translate_text(transcript.text, target_lang="FR")
+print(result.text)
 
