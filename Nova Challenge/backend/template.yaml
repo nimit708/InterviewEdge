@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: InterviewEdge Backend API
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Environment:
+      Variables:
+        AWS_REGION: !Ref AWS::Region
+
+Resources:
+  InterviewEdgeAPI:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: InterviewEdge-API
+      CodeUri: .
+      Handler: main.handler
+      Architectures:
+        - x86_64
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - polly:SynthesizeSpeech
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - transcribe:StartStreamTranscription
+            Resource: '*'
+      Events:
+        RootPath:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+            RestApiId: !Ref InterviewEdgeApiGateway
+        ProxyPath:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+            RestApiId: !Ref InterviewEdgeApiGateway
+
+  InterviewEdgeApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: InterviewEdge-API
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        MaxAge: "'600'"
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${InterviewEdgeApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod"
+  FunctionArn:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt InterviewEdgeAPI.Arn

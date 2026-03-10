@@ -1,0 +1,12 @@
+version = 0.1
+
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "interviewedge-backend"
+resolve_s3 = true
+s3_prefix = "interviewedge-backend"
+region = "eu-west-2"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = ""
+image_repositories = []

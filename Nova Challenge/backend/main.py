@@ -21,9 +21,9 @@ app.add_middleware(
 )
 
 # AWS clients
-bedrock = boto3.client('bedrock-runtime', region_name=os.getenv('AWS_REGION', 'us-east-1'))
-polly = boto3.client('polly', region_name=os.getenv('AWS_REGION', 'us-east-1'))
-transcribe = boto3.client('transcribe', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+bedrock = boto3.client('bedrock-runtime', region_name=os.getenv('AWS_REGION', 'eu-west-2'))
+polly = boto3.client('polly', region_name=os.getenv('AWS_REGION', 'eu-west-2'))
+transcribe = boto3.client('transcribe', region_name=os.getenv('AWS_REGION', 'eu-west-2'))
 
 # In-memory session storage (use DynamoDB for production)
 sessions: Dict[str, dict] = {}
