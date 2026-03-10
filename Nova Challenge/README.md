@@ -61,7 +61,7 @@ export REACT_APP_API_URL=http://localhost:8000
 2. **Configure Environment Variables**
    - In Amplify Console, go to App Settings > Environment variables
    - Add:
-     - `AWS_REGION`: Your AWS region (e.g., us-east-1)
+     - `AWS_REGION`: Your AWS region (e.g., eu-west-2)
      - `REACT_APP_API_URL`: Your API Gateway URL (after backend deployment)
 
 3. **Deploy Backend to Lambda**

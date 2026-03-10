@@ -21,11 +21,12 @@ applications:
       phases:
         build:
           commands:
-            - cd backend
-            - pip install -r requirements.txt -t .
-            - zip -r function.zip .
+            - echo "Backend deployment is handled via CloudFormation and AWS CLI"
+            - echo "Run backend/deploy-complete.ps1 locally to deploy backend"
+            - echo "API URL will be available in backend/api-url.txt after deployment"
       artifacts:
         baseDirectory: backend
         files:
-          - function.zip
+          - deployment-info.json
+          - api-url.txt
     appRoot: backend
