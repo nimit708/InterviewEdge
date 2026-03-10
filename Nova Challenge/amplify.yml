@@ -6,7 +6,7 @@ applications:
         preBuild:
           commands:
             - cd frontend
-            - npm ci
+            - npm install
         build:
           commands:
             - cd frontend
