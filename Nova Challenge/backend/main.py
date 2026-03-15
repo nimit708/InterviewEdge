@@ -8,6 +8,7 @@ from typing import Dict, List
 import boto3
 from dataclasses import dataclass, asdict
 import os
+import io
 
 app = FastAPI()
 
@@ -46,13 +47,44 @@ class Answer:
 async def root():
     return {"message": "Mock Interview API", "status": "running"}
 
+def extract_text(content: bytes, filename: str) -> str:
+    """Extract text from txt, pdf, or docx files"""
+    ext = filename.lower().rsplit('.', 1)[-1] if '.' in filename else ''
+
+    if ext == 'pdf':
+        try:
+            import PyPDF2
+            reader = PyPDF2.PdfReader(io.BytesIO(content))
+            return "\n".join(page.extract_text() or '' for page in reader.pages).strip()
+        except Exception as e:
+            return f"[PDF parse error: {str(e)}]"
+
+    elif ext == 'docx':
+        try:
+            import docx
+            doc = docx.Document(io.BytesIO(content))
+            return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+        except Exception as e:
+            return f"[DOCX parse error: {str(e)}]"
+
+    else:
+        try:
+            return content.decode('utf-8')
+        except UnicodeDecodeError:
+            return content.decode('latin-1', errors='replace')
+
 @app.post("/api/session/start")
 async def start_session(cv: UploadFile = File(...), job_desc: UploadFile = File(...)):
     """Initialize interview session with CV and job description"""
     try:
         session_id = str(uuid.uuid4())
-        cv_text = (await cv.read()).decode('utf-8')
-        job_text = (await job_desc.read()).decode('utf-8')
+        
+        # Read and parse file content
+        cv_content = await cv.read()
+        job_content = await job_desc.read()
+
+        cv_text = extract_text(cv_content, cv.filename or 'cv.txt')
+        job_text = extract_text(job_content, job_desc.filename or 'job.txt')
         
         sessions[session_id] = {
             "session_id": session_id,
@@ -84,16 +116,19 @@ async def generate_question(session_id: str):
     session = sessions[session_id]
     
     # Build prompt for Nova
-    prompt = f"""You are conducting a job interview. 
+    previous_qs = "\n".join(f"- {q['text']}" for q in session['questions']) if session['questions'] else "None yet"
+    prompt = f"""You are conducting a job interview.
 CV Summary: {session['cv_context'][:500]}
 Job Description: {session['job_context'][:500]}
-Previous questions: {len(session['questions'])}
 
-Generate ONE relevant interview question. Return only the question text, nothing else."""
+Questions already asked (do NOT repeat or ask anything similar to these):
+{previous_qs}
+
+Generate ONE new interview question that is different from all the above. Cover a different topic or skill each time. Return only the question text, nothing else."""
     
     try:
         response = bedrock.invoke_model(
-            modelId='us.amazon.nova-lite-v1:0',
+            modelId='amazon.nova-lite-v1:0',
             body=json.dumps({
                 "messages": [{"role": "user", "content": [{"text": prompt}]}],
                 "inferenceConfig": {"temperature": 0.7, "maxTokens": 200}
@@ -114,7 +149,10 @@ Generate ONE relevant interview question. Return only the question text, nothing
         
         return {"question": asdict(question)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Question generation failed: {str(e)}")
+        import traceback
+        error_detail = f"Question generation failed: {str(e)}\nTraceback: {traceback.format_exc()}"
+        print(error_detail)  # This will appear in CloudWatch logs
+        raise HTTPException(status_code=500, detail=error_detail)
 
 @app.post("/api/answer/submit/{session_id}")
 async def submit_answer(session_id: str, question_id: str, answer_text: str):
@@ -163,7 +201,7 @@ Provide:
     
     try:
         response = bedrock.invoke_model(
-            modelId='us.amazon.nova-lite-v1:0',
+            modelId='amazon.nova-lite-v1:0',
             body=json.dumps({
                 "messages": [{"role": "user", "content": [{"text": prompt}]}],
                 "inferenceConfig": {"temperature": 0.7, "maxTokens": 500}

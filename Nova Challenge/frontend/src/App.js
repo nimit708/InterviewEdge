@@ -120,6 +120,15 @@ function App() {
     }
   };
 
+  const reRecord = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsRecording(false);
+    setTranscript('');
+    setStatus('listening');
+  };
+
   const submitAnswer = async () => {
     try {
       await axios.post(`${API_URL}/api/answer/submit/${sessionId}`, null, {
@@ -158,13 +167,21 @@ function App() {
         {status === 'idle' && (
           <div className="upload-section">
             <h2>Start Your Interview</h2>
+
+            <div className="privacy-notice">
+              🔒 Your data is never stored. Files and answers exist only for the duration of your session and are discarded immediately after.
+            </div>
+
             <div className="file-input">
-              <label>Upload CV:</label>
+              <label>Upload CV (PDF, DOCX or TXT):</label>
               <input type="file" ref={cvFileRef} accept=".txt,.pdf,.docx" />
             </div>
             <div className="file-input">
-              <label>Upload Job Description:</label>
+              <label>Upload Job Description (PDF, DOCX or TXT):</label>
               <input type="file" ref={jobFileRef} accept=".txt,.pdf,.docx" />
+              <p className="file-hint">
+                💡 Tip: Open the job posting in your browser, press <strong>Ctrl+P</strong> (or <strong>Cmd+P</strong> on Mac) and choose <strong>"Save as PDF"</strong> to download it.
+              </p>
             </div>
             <button onClick={startSession} className="btn-primary">
               Start Interview
@@ -193,7 +210,10 @@ function App() {
                 <div className="recording-indicator">🔴 Recording...</div>
                 <p className="transcript">{transcript}</p>
                 <button onClick={stopRecording} className="btn-stop">
-                  Stop Recording
+                  Stop &amp; Submit Answer
+                </button>
+                <button onClick={reRecord} className="btn-rerecord">
+                  🔄 Re-record
                 </button>
                 <p className="hint">Say "end the interview" to finish</p>
               </div>
