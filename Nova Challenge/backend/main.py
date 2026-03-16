@@ -183,15 +183,23 @@ async def end_session(session_id: str):
     session['status'] = "COMPLETED"
     session['end_time'] = datetime.now().isoformat()
     
+    # Only include questions that were actually answered
+    answered_questions = [
+        q for q in session['questions']
+        if any(a['question_id'] == q['question_id'] for a in session['answers'])
+    ]
+
     # Generate feedback using Nova
     transcript = "\n".join([
-        f"Q: {q['text']}\nA: {next((a['text'] for a in session['answers'] if a['question_id'] == q['question_id']), 'No answer')}"
-        for q in session['questions']
+        f"Q: {q['text']}\nA: {next(a['text'] for a in session['answers'] if a['question_id'] == q['question_id'])}"
+        for q in answered_questions
     ])
     
     prompt = f"""Analyze this interview performance and provide feedback:
 
 {transcript}
+
+The candidate answered {len(answered_questions)} question(s). Only evaluate the answers provided above.
 
 Provide:
 1. Overall assessment

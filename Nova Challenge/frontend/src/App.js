@@ -200,9 +200,14 @@ function App() {
             </div>
 
             {status === 'listening' && !isRecording && (
-              <button onClick={startRecording} className="btn-record">
-                Start Recording Answer
-              </button>
+              <div className="action-buttons">
+                <button onClick={startRecording} className="btn-record">
+                  Start Recording Answer
+                </button>
+                <button onClick={endInterview} className="btn-end">
+                  End Interview &amp; Get Feedback
+                </button>
+              </div>
             )}
 
             {isRecording && (

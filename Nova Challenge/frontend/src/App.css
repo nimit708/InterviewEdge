@@ -218,3 +218,27 @@
 .btn-rerecord:hover {
   background: #f0f4ff;
 }
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btn-end {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid #e53e3e;
+  border-radius: 8px;
+  cursor: pointer;
+  background: white;
+  color: #e53e3e;
+  transition: all 0.3s ease;
+  margin-top: 0;
+}
+
+.btn-end:hover {
+  background: #fff5f5;
+}
