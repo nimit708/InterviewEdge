@@ -198,13 +198,18 @@ async def end_session(session_id: str):
         for q in answered_questions
     ])
     
-    prompt = f"""Analyze this interview performance and provide feedback:
+    prompt = f"""You are evaluating a mock job interview for the following role:
 
+Job Description: {session['job_context'][:400]}
+
+Interview transcript:
 {transcript}
+
+Important: The answers were captured via speech-to-text so they may lack punctuation or have minor transcription errors. Judge the substance and relevance of what was said, not the formatting or grammar.
 
 The candidate answered {len(answered_questions)} question(s). Only evaluate the answers provided above.
 
-Provide:
+Provide constructive feedback with:
 1. Overall assessment
 2. Strengths (2-3 points)
 3. Areas for improvement (2-3 points)
