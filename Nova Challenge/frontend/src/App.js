@@ -220,7 +220,7 @@ function App() {
                 <button onClick={reRecord} className="btn-rerecord">
                   🔄 Re-record
                 </button>
-                <p className="hint">Say "end the interview" to finish</p>
+
               </div>
             )}
 
