@@ -117,16 +117,14 @@ async def generate_question(session_id: str):
     
     # Build prompt for Nova
     previous_qs = "\n".join(f"- {q['text']}" for q in session['questions']) if session['questions'] else "None yet"
-    prompt = f"""You are conducting a job interview for the following role:
+    prompt = f"""You are conducting a job interview.
+CV Summary: {session['cv_context'][:500]}
+Job Description: {session['job_context'][:500]}
 
-Job Description: {session['job_context'][:600]}
-
-The candidate's background for context: {session['cv_context'][:300]}
-
-Questions already asked (do NOT repeat or ask anything similar):
+Questions already asked (do NOT repeat or ask anything similar to these):
 {previous_qs}
 
-Generate ONE interview question. Primarily base it on the skills, responsibilities and requirements in the job description. You may reference the candidate's background to make it specific, but the question should always be rooted in what the role demands. Cover a different topic or skill each time. Return only the question text, nothing else."""
+Generate ONE new interview question that is different from all the above. Cover a different topic or skill each time. Return only the question text, nothing else."""
     
     try:
         response = bedrock.invoke_model(
