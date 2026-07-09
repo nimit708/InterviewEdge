@@ -117,14 +117,25 @@ async def generate_question(session_id: str):
     
     # Build prompt for Nova
     previous_qs = "\n".join(f"- {q['text']}" for q in session['questions']) if session['questions'] else "None yet"
-    prompt = f"""You are conducting a job interview.
-CV Summary: {session['cv_context'][:500]}
-Job Description: {session['job_context'][:500]}
+    question_count = len(session['questions'])
+    
+    prompt = f"""You are a technical interviewer conducting a job interview for the following role:
+
+Job Description: {session['job_context'][:600]}
+
+Candidate CV: {session['cv_context'][:400]}
 
 Questions already asked (do NOT repeat or ask anything similar to these):
 {previous_qs}
 
-Generate ONE new interview question that is different from all the above. Cover a different topic or skill each time. Return only the question text, nothing else."""
+Question guidelines:
+- Focus on the SPECIFIC technical skills, tools, and technologies mentioned in the job description
+- Ask questions that test practical knowledge, not just experience narratives
+- Mix question types: technical problem-solving, system design, scenario-based, and knowledge questions
+- Question {question_count + 1}: {"Ask a technical knowledge or problem-solving question about a core skill from the job description" if question_count % 3 == 0 else "Ask a scenario-based question where the candidate must explain how they'd handle a specific technical challenge relevant to this role" if question_count % 3 == 1 else "Ask about a specific technology, framework, or methodology mentioned in the job description"}
+- Do NOT ask vague questions like "tell me about your experience with X" — instead ask something that requires demonstrating actual knowledge
+
+Generate ONE focused interview question. Return only the question text, nothing else."""
     
     try:
         response = bedrock.invoke_model(
@@ -202,29 +213,37 @@ async def end_session(session_id: str):
         for q in answered_questions
     ])
     
-    prompt = f"""You are evaluating a mock job interview for the following role:
+    prompt = f"""You are a senior technical interviewer evaluating a mock job interview.
 
-Job Description: {session['job_context'][:400]}
+Role being interviewed for:
+{session['job_context'][:500]}
 
 Interview transcript:
 {transcript}
 
-Important: The answers were captured via speech-to-text so they may lack punctuation or have minor transcription errors. Judge the substance and relevance of what was said, not the formatting or grammar.
+Important: The answers were captured via speech-to-text so they may lack punctuation or have minor transcription errors. Judge the substance, technical accuracy, and depth of what was said — not formatting or grammar.
 
 The candidate answered {len(answered_questions)} question(s). Only evaluate the answers provided above.
 
-Provide constructive feedback with:
-1. Overall assessment
-2. Strengths (2-3 points)
-3. Areas for improvement (2-3 points)
-4. Overall score (0-100)"""
+Evaluate each answer against these criteria:
+- Technical accuracy: Did the candidate demonstrate correct understanding of the technologies/concepts?
+- Depth of knowledge: Did they go beyond surface-level answers? Did they show practical, hands-on understanding?
+- Relevance to role: Did the answer address skills specifically needed for this job?
+- Problem-solving approach: Did they show structured thinking when tackling technical problems?
+
+Provide feedback in this format:
+1. Overall Assessment (2-3 sentences summarizing technical readiness for this specific role)
+2. Technical Strengths (2-3 specific points about what they demonstrated well technically)
+3. Technical Gaps (2-3 specific areas where their technical knowledge was weak, vague, or missing relative to the job requirements)
+4. Actionable Recommendations (2-3 concrete things to study or practice)
+5. Overall Score: X/100 (where 70+ means technically ready for the role, 50-69 needs some preparation, below 50 needs significant work)"""
     
     try:
         response = bedrock.invoke_model(
             modelId='amazon.nova-lite-v1:0',
             body=json.dumps({
                 "messages": [{"role": "user", "content": [{"text": prompt}]}],
-                "inferenceConfig": {"temperature": 0.7, "maxTokens": 500}
+                "inferenceConfig": {"temperature": 0.7, "maxTokens": 800}
             })
         )
         
