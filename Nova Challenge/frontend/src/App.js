@@ -11,6 +11,7 @@ function App() {
   const [transcript, setTranscript] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [status, setStatus] = useState('idle');
+  const [errorMessage, setErrorMessage] = useState('');
   
   const cvFileRef = useRef(null);
   const jobFileRef = useRef(null);
@@ -110,12 +111,18 @@ function App() {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       setIsRecording(false);
-      setStatus('processing');
+      setErrorMessage('');
 
-      if (transcript.toLowerCase().includes('end the interview')) {
-        await endInterview();
+      if (transcript && transcript.trim()) {
+        setStatus('processing');
+        if (transcript.toLowerCase().includes('end the interview')) {
+          await endInterview();
+        } else {
+          await submitAnswer();
+        }
       } else {
-        await submitAnswer();
+        setErrorMessage('No speech was detected. Please try recording again.');
+        setStatus('submit_failed');
       }
     }
   };
@@ -126,22 +133,36 @@ function App() {
     }
     setIsRecording(false);
     setTranscript('');
+    setErrorMessage('');
     setStatus('listening');
   };
 
   const submitAnswer = async () => {
+    if (!transcript || !transcript.trim()) {
+      setErrorMessage('No answer was recorded. Please try recording again.');
+      setStatus('submit_failed');
+      return;
+    }
+
     try {
+      setStatus('processing');
       await axios.post(`${API_URL}/api/answer/submit/${sessionId}`, null, {
         params: {
           question_id: currentQuestion.question_id,
-          answer_text: transcript
+          answer_text: transcript.trim()
         }
       });
       setTranscript('');
+      setErrorMessage('');
       await getNextQuestion();
     } catch (error) {
       console.error('Failed to submit answer:', error);
-      alert('Failed to submit answer');
+      if (error.response && error.response.status === 400) {
+        setErrorMessage('Answer cannot be blank. Please re-record your answer.');
+      } else {
+        setErrorMessage('Failed to submit answer. Please try again.');
+      }
+      setStatus('submit_failed');
     }
   };
 
@@ -225,6 +246,20 @@ function App() {
             )}
 
             {status === 'processing' && <div className="status">Processing your answer...</div>}
+
+            {status === 'submit_failed' && (
+              <div className="error-section">
+                <div className="error-message">⚠️ {errorMessage}</div>
+                <div className="action-buttons">
+                  <button onClick={reRecord} className="btn-record">
+                    🎙️ Re-record Answer
+                  </button>
+                  <button onClick={endInterview} className="btn-end">
+                    End Interview &amp; Get Feedback
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

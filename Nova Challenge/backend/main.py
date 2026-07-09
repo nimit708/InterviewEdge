@@ -160,12 +160,16 @@ async def submit_answer(session_id: str, question_id: str, answer_text: str):
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     
+    # Check for blank/empty answers
+    if not answer_text or not answer_text.strip():
+        raise HTTPException(status_code=400, detail="Answer cannot be blank. Please record your answer before submitting.")
+    
     session = sessions[session_id]
     
     answer = Answer(
         answer_id=str(uuid.uuid4()),
         question_id=question_id,
-        text=answer_text,
+        text=answer_text.strip(),
         timestamp=datetime.now().isoformat()
     )
     
