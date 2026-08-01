@@ -1,0 +1,67 @@
+version: "3.9"
+
+services:
+  # CockroachDB local instance (use Cloud for production)
+  cockroachdb:
+    image: cockroachdb/cockroach:v24.1.0
+    command: start-single-node --insecure
+    ports:
+      - "26257:26257"  # SQL
+      - "8080:8080"    # Admin UI
+    volumes:
+      - cockroach-data:/cockroach/cockroach-data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Run schema migrations
+  db-init:
+    image: cockroachdb/cockroach:v24.1.0
+    depends_on:
+      cockroachdb:
+        condition: service_healthy
+    volumes:
+      - ./shared/sql:/sql
+    command: >
+      sql --insecure --host=cockroachdb:26257 
+      -e "CREATE DATABASE IF NOT EXISTS ledgermind;"
+    # Then run: docker exec -it <container> cockroach sql --insecure --host=cockroachdb -d ledgermind < /sql/001_initial_schema.sql
+
+  # FastAPI Backend
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=cockroachdb+asyncpg://root@cockroachdb:26257/ledgermind
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
+      - COGNITO_APP_CLIENT_ID=${COGNITO_APP_CLIENT_ID}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-anthropic.claude-sonnet-4-20250514-v1:0}
+      - SQS_QUEUE_URL=${SQS_QUEUE_URL}
+    depends_on:
+      cockroachdb:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+  # Ingestion Worker
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python -m worker.main
+    environment:
+      - DATABASE_URL=cockroachdb+asyncpg://root@cockroachdb:26257/ledgermind
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - SQS_QUEUE_URL=${SQS_QUEUE_URL}
+    depends_on:
+      cockroachdb:
+        condition: service_healthy
+
+volumes:
+  cockroach-data:

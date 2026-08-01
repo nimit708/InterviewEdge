@@ -1,0 +1,22 @@
+# Copy this to terraform.tfvars and fill in values
+
+aws_region  = "us-east-1"
+environment = "dev"
+project_name = "ledgermind"
+
+# Networking
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+# ECS sizing (dev defaults)
+api_cpu            = 512
+api_memory         = 1024
+agent_cpu          = 1024
+agent_memory       = 2048
+worker_cpu         = 256
+worker_memory      = 512
+api_desired_count  = 1  # Use 1 for dev, 2+ for prod
+
+# Cognito callback URLs (update with your Amplify domain)
+cognito_callback_urls = ["http://localhost:3000", "https://your-amplify-domain.amplifyapp.com"]
+cognito_logout_urls   = ["http://localhost:3000", "https://your-amplify-domain.amplifyapp.com"]
